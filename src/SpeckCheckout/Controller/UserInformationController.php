@@ -17,7 +17,7 @@ class UserInformationController extends AbstractActionController
             return $this->redirect()->toRoute('checkout/user-information/addresses');
         }
 
-        $form = $this->getRegisterForm();
+        $form = $this->getRegisterForm(true);
 
         $prg = $this->prg('checkout/user-information');
         if ($prg instanceof Response) {
@@ -28,9 +28,9 @@ class UserInformationController extends AbstractActionController
             );
         }
 
-        $zfcuser  = $form->get('zfcuser')->setData($prg['zfcuser']);
-        $shipping = $form->get('shipping')->setData($prg['shipping']);
-        $billing  = $form->get('billing')->setData($prg['billing']);
+        $zfcuser  = $form->get('zfcuser')->setData($prg['form']['zfcuser']);
+        $shipping = $form->get('shipping')->setData($prg['form']['shipping']);
+        $billing  = $form->get('billing')->setData($prg['form']['billing']);
 
         $valid1 = $zfcuser->isValid();
         $valid2 = $shipping->isValid();
@@ -65,7 +65,7 @@ class UserInformationController extends AbstractActionController
         }
 
         $post['identity'] = $user->getEmail();
-        $post['credential'] = $prg['zfcuser']['password'];
+        $post['credential'] = $prg['form']['zfcuser']['password'];
         $post['redirect'] = $this->url()->fromRoute('checkout');
 
         $this->getRequest()->setPost(new Parameters($post));
@@ -91,18 +91,7 @@ class UserInformationController extends AbstractActionController
             $addressesArray[$a['address_id']] = $a;
         }
 
-        $shippingAddressForm = $this->getServiceLocator()->get('SpeckAddress\Form\Address');
-        $shippingAddressForm->setName('shipping')
-            ->setInputFilter($this->getServiceLocator()->get('SpeckAddress\Form\AddressFilter'));
-
-        $billingAddressForm = $this->getServiceLocator()->get('SpeckAddress\Form\Address');
-        $billingAddressForm->setName('billing')
-            ->setInputFilter($this->getServiceLocator()->get('SpeckAddress\Form\AddressFilter'));
-
-        $form = new \Zend\Form\Form;
-
-        $form->add($shippingAddressForm)
-            ->add($billingAddressForm);
+        $form = $this->getRegisterForm();
 
         $checkoutService = $this->getServiceLocator()->get('SpeckCheckout\Service\Checkout');
 
@@ -127,8 +116,8 @@ class UserInformationController extends AbstractActionController
         $shipping = $form->get('shipping');
         $billing = $form->get('billing');
 
-        $shipping->setData(isset($prg['shipping']) ? $prg['shipping'] : array());
-        $billing->setData(isset($prg['billing']) ? $prg['billing'] : array());
+        $shipping->setData(isset($prg['form']['shipping']) ? $prg['form']['shipping'] : array());
+        $billing->setData(isset($prg['form']['billing']) ? $prg['form']['billing'] : array());
 
         $valid1 = ($shippingAddressId != 0) ? true : $shipping->isValid();
         $valid2 = ($billingAddressId != 0) ? true : $billing->isValid();
@@ -176,11 +165,9 @@ class UserInformationController extends AbstractActionController
         return $this->redirect()->toRoute('checkout');
     }
 
-    public function getRegisterForm()
+    public function getRegisterForm($zfcuser = null)
     {
-        $userForm = $this->getServiceLocator()->get('zfcuser_register_form');
-        $userForm->setName('zfcuser');
-        $userForm->remove('submit');
+        
 
         $shippingAddressForm = $this->getServiceLocator()->get('SpeckAddress\Form\Address');
         $shippingAddressForm->setName('shipping')
@@ -191,8 +178,17 @@ class UserInformationController extends AbstractActionController
             ->setInputFilter($this->getServiceLocator()->get('SpeckAddress\Form\AddressFilter'));
 
         $form = new \Zend\Form\Form;
+        $form->setName('form')->setWrapElements(true);
+        
+        if($zfcuser)
+        {
+            $userForm = $this->getServiceLocator()->get('zfcuser_register_form');
+            $userForm->setName('zfcuser');
+            $userForm->remove('submit');
+            $form->add($userForm);
+        }
 
-        $form->add($userForm)
+        $form
             ->add($shippingAddressForm)
             ->add($billingAddressForm);
 
