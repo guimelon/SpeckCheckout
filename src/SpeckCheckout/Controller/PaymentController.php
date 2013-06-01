@@ -16,6 +16,12 @@ class PaymentController extends AbstractActionController
         $options         = $checkoutService->getOptions();
         $paymentMethods  = $options->getPaymentMethods();
 
+        if(count($paymentMethods) == 1 )
+        {
+            $url = $this->url()->fromRoute('checkout/payment/main').'?method='.current($paymentMethods)->getPaymentMethod();
+        	return $this->redirect()->toUrl($url);
+        	 
+        }
         $paymentMethod = $checkoutService->getCheckoutStrategy()->getPaymentMethod();
         $methodString = ($paymentMethod ? $paymentMethod->getPaymentMethod() : null );
 
